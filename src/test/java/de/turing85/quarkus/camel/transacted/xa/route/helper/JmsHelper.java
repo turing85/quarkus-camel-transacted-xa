@@ -16,7 +16,7 @@ import lombok.Getter;
 
 @Singleton
 @Getter
-public class JmsHelper {
+public final class JmsHelper {
   private final ConnectionFactory connectionFactory;
   private final ConnectionFactory secondConnectionFactory;
 
@@ -30,13 +30,13 @@ public class JmsHelper {
   }
 
   public void purgeQueues() {
-    purgeQueue(getConnectionFactory(), JmsToJmsRoute.IN_QUEUE_NAME);
-    purgeQueue(getConnectionFactory(), FileToJmsRoute.OUT_QUEUE_NAME);
-    purgeQueue(getSecondConnectionFactory(), JmsToJmsRoute.OUT_QUEUE_NAME);
+    purgeQueue(JmsToJmsRoute.IN_QUEUE_NAME);
+    purgeQueue(FileToJmsRoute.OUT_QUEUE_NAME);
+    purgeQueue(JmsToJmsRoute.OUT_QUEUE_NAME);
   }
 
-  private static void purgeQueue(ConnectionFactory connectionFactory, String queueName) {
-    try (final JMSContext jmsContext = connectionFactory.createContext();
+  private void purgeQueue(String queueName) {
+    try (final JMSContext jmsContext = getConnectionFactory().createContext();
         final JMSConsumer consumer = jmsContext.createConsumer(jmsContext.createQueue(queueName))) {
       int counter = 0;
       while (consumer.receive(Duration.ofMillis(100).toMillis()) != null) {

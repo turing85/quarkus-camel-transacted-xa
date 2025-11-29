@@ -15,7 +15,7 @@ import org.hamcrest.Matcher;
 import org.jspecify.annotations.Nullable;
 
 @RequiredArgsConstructor
-public class HasBodyMatcher extends BaseMatcher<Message> {
+public final class HasBodyMatcher extends BaseMatcher<Message> {
   private static final String BODY_MATCHER_PREFIX = "a message body that ";
 
   private final Matcher<Object> bodyMatcher;
@@ -48,26 +48,7 @@ public class HasBodyMatcher extends BaseMatcher<Message> {
       return false;
     }
     if (object instanceof Message message) {
-      try {
-        Object messageBody = message.getBody(Object.class);
-        if (!bodyMatcher.matches(messageBody)) {
-          describer = description -> {
-            description.appendText(BODY_MATCHER_PREFIX);
-            bodyMatcher.describeTo(description);
-          };
-          mismatchDescriber = description -> {
-            description.appendText("was " + BODY_MATCHER_PREFIX);
-            bodyMatcher.describeMismatch(messageBody, description);
-          };
-          return false;
-        }
-        return true;
-      } catch (JMSException e) {
-        describer =
-            description -> description.appendText("a message with a body transformable to String");
-        mismatchDescriber = description -> description.appendText("was %s".formatted(message));
-        return false;
-      }
+      return bodyMatches(message);
     }
     describer = description -> description
         .appendText("an instance of %s".formatted(JmsMessage.class.getName()));
@@ -83,5 +64,28 @@ public class HasBodyMatcher extends BaseMatcher<Message> {
   @Override
   public void describeMismatch(Object item, Description description) {
     Objects.requireNonNull(mismatchDescriber, "mismatchDescriber is null").accept(description);
+  }
+
+  private boolean bodyMatches(Message message) {
+    try {
+      final Object messageBody = message.getBody(Object.class);
+      if (!bodyMatcher.matches(messageBody)) {
+        describer = description -> {
+          description.appendText(BODY_MATCHER_PREFIX);
+          bodyMatcher.describeTo(description);
+        };
+        mismatchDescriber = description -> {
+          description.appendText("was " + BODY_MATCHER_PREFIX);
+          bodyMatcher.describeMismatch(messageBody, description);
+        };
+        return false;
+      }
+      return true;
+    } catch (JMSException e) {
+      describer =
+          description -> description.appendText("a message with a body transformable to String");
+      mismatchDescriber = description -> description.appendText("was %s".formatted(message));
+      return false;
+    }
   }
 }
